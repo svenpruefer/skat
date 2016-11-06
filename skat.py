@@ -1,7 +1,13 @@
-# Import Libraries for later usage
+####################################
+# Import Libraries for later usage #
+####################################
+
 import random
 
-# Define cards
+################
+# Define cards #
+################
+
 class card:
     # Cards  have the following attributes: Color (s,r,g,e), Face (7,8,9,10,u,o,k,a), Value (for later evaluation, possibly 0,2,3,4,10,11), Trump (True or False)
     def __init__(self,color,face):
@@ -26,10 +32,17 @@ class card:
     def trump(self):
         self.trump = True
 
-# Function to decide who wins a round
+#######################################
+# Function to decide who wins a round #
+#######################################
+
+# vergleich() compares two cards using a given order_of_cards and outputs the winning card
 
 def vergleich(card1,card2, order_of_cards):
+    # At the beginning, assume first card wins
     winner = card1
+    
+    # Order of Unter. Why is this here?
     order_of_unter = ["s","r","g","e"]
     
     # If Player 1 does not play any trump
@@ -51,12 +64,16 @@ def vergleich(card1,card2, order_of_cards):
     
     return winner
 
+# stich() compares three cards using a given order_of_cards and outputs the winning card
+
 def stich(cards,order_of_cards):
     winner = vergleich(cards[0],cards[1],order_of_cards)
     winner = vergleich(winner,cards[2],order_of_cards)
     return winner
-    
-# Initialize cards
+
+####################
+# Initialize cards #
+####################
 
 s7 = card("s",7)
 s8 = card("s",8)
@@ -94,16 +111,23 @@ ek = card("e","k")
 e10 = card("e",10)
 ea = card("e","a")
 
-# Reizreihenfolge
+#####################################
+# Define possible values for Reizen #
+#####################################
 
-reizreihenfolge = [18,20,22,24,27,30,35,36,40,44]
+reizreihenfolge = [18,20,22,23,24,27,30,35,36,40,44,45,46,48,50,54,55,59,60,63,66,70,72,77,80,81,84,88,90,96,99,100,108,110,117,120,121,126,130,132,135,140,143,144,150,153,154,156,160,162,165,168,170,176,180,187,192,198,204,216,240,264]
+
+#######################
+# Define class player #
+#######################
 
 # Define Class Player which stores cards on hand, provides a function to compute possible (lawful) moves, keeps track of won cards, provides function for decision maker (at the moment random)
 
 class player:
-    def __init__(self,cards,name):
-        self.cards = cards
+    def __init__(self,name):
+        self.cards = []
         self.stiche = []
+        self.total_points = 0
         self.name = name
     
     # Incorporates Rules for playing cards, i.e. if you can follow suite you have to, otherwise you are free to play anything
@@ -150,19 +174,31 @@ class player:
             summe = summe + card.value
         return summe
     
-    # Reizen
+    # Reizen. At the moment the computer flips a coin wheter to raise or not.
     def reizen(self, history = None, ansage = None):
         if random(1) >= 0.5:
             if ansage == None:
                 return 18
+            elif ansage <= 360:
+                return reizwert[reizwert.index(ansage)+1]
             else:
-                return reizwert[ansage+1]
+                return False
         else:
             return False
+     
+     # Drücken
+     # The player decides which cards to exchange with the Skat.
+     
+     # Game Decision
+     # The player decides which game to play.
+
+#######################
+# Play a defined game #
+#######################
 
 # Start new game (At the moment the type of game is decided first and then the cards are distributed)
 
-def start_new_game(game,player1,player2,player3,first_player,single_player):
+def play_game(game,player1,player2,player3,first_player,single_player):
     # Initialize hands of players and Skat, at the moment player 1 starts
     #player1 = player([],"A")
     #player2 = player([],"B")
@@ -212,7 +248,7 @@ def start_new_game(game,player1,player2,player3,first_player,single_player):
             if card.face == "u":
                 card.trump = True
     elif game == "null":
-        order_of_cards = [7,8,9,10,"u","o","k","a"]
+        order_of_cards = [7,8,9,10,"u","o","k","a"]    
     
     # Give Skat to single player
     
@@ -244,11 +280,28 @@ def start_new_game(game,player1,player2,player3,first_player,single_player):
 #for spieler in ergebnisse:
 #    print  spieler.name + " hat " + str([a.name for a in spieler.stiche]) + " or " + str([a.value for a in spieler.stiche]) + " i.e. " + str(spieler.points())
 
-# Play a series
+########################
+# Play a complete game #
+########################
+
+def play_complete_game(player1,player2,player3):
+    # Shuffle and distribute cards
+    
+    # Reizen
+    
+    # Drücken
+    
+    # Play a game
+    
+    # Modify points according to game result
+
+##########################
+# Play a series of games #
+##########################
 
 # Create players
-player1 = player([],"A")
-player2 = player([],"B")
-player3 = player([],"C")
+player1 = player("A")
+player2 = player("B")
+player3 = player("C")
 
 #
