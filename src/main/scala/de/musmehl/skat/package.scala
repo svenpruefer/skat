@@ -42,9 +42,33 @@ package object skat {
 
     // region Determination of suits of trumps
 
-    def countUnter(cards: Set[Card]): Int = ???
+    def countUnter(cards: Set[Card]): (Int, Boolean) = {
+        val existingUnter: Set[Int] = cards.filter(x => x.value == Unter).map(_.color).map(colorMap)
 
-    def countColorTrumps(cards: Set[Card], trumpColor: Color): Int = ???
+        val mit = existingUnter.contains(4)
+
+        List(4, 3, 2, 1).indexWhere(x => existingUnter.contains(x) != mit) match {
+            case -1 => (4, mit)
+            case x => (x, mit)
+        }
+    }
+
+    def countColorTrumps(cards: Set[Card], trumpColor: Color, mit: Boolean): Int = {
+        val existingColorTrumps: Set[Int] = cards.filter(x => x.color == trumpColor && x.value != Unter)
+            .map(_.value).map(normalMap)
+
+        (7 until 1).toList.indexWhere(x => existingColorTrumps.contains(x) != mit) match {
+            case -1 => 7
+            case x => x
+        }
+    }
 
     // endregion
+
+    def modifications(hand: Boolean,
+                      schneider: Boolean,
+                      schneiderAngesagt: Boolean,
+                      schwarz: Boolean,
+                      schwarzAngesagt: Boolean,
+                      ouvert: Boolean): Int = ???
 }

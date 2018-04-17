@@ -4,32 +4,23 @@ sealed trait Game {
 
     implicit def orderOfValues: Ordering[Value]
 
-    def isTrump: Card => Boolean
-
-    def pointValues: Card => Option[Int] = (card: Card) => {
-        card match {
-            case Card(_, Sieben) || Card(_, Acht) || Card(_, Neun) => Some(0)
-            case Card(_, Unter) => Some(2)
-            case Card(_, Ober) => Some(3)
-            case Card(_, König) => Some(4)
-            case Card(_, Zehn) => Some(10)
-            case Card(_, Ass) => Some(11)
-        }
-    }
+    def isTrump(card: Card): Boolean
 
     def schneider: Boolean
 
-    def angesagt: Boolean
+    def schneiderAngesagt: Boolean
 
     def schwarz: Boolean
+
+    def schwarzAngesagt: Boolean
 
     def ouvert: Boolean
 
     def hand: Boolean
 
-    def totalPoints: Set[Card] => Int
+    def totalGamePoints(cardsSinglePlayer: Set[Card]): Int
 
-    def leadingTrumps: Set[Card] => Option[Int]
+    def leadingTrumps(cards: Set[Card]): Int
 
 }
 
@@ -40,15 +31,15 @@ case class Null(hand: Boolean, ouvert: Boolean) extends Game {
 
     override implicit def orderOfValues: Ordering[Value] = nullOrdering
 
-    override def pointValues: Card => Option[Int] = x => None
-
     override def schneider: Boolean = false
 
-    override def angesagt: Boolean = false
+    override def schneiderAngesagt: Boolean = false
 
     override def schwarz: Boolean = false
 
-    override def totalPoints: Set[Card] => Int = (cards: Set[Card]) => {
+    override def schwarzAngesagt: Boolean = false
+
+    override def totalGamePoints(cardsSinglePlayer: Set[Card]): Int = {
         (hand, ouvert) match {
             case (true, false) => 35
             case (true, true) => 56
@@ -57,35 +48,61 @@ case class Null(hand: Boolean, ouvert: Boolean) extends Game {
         }
     }
 
-    override def isTrump: Card => Boolean = x => false
+    override def isTrump(card: Card): Boolean = false
 
-    override def leadingTrumps: Set[Card] => Option[Int] = (s: Set[Card]) => None
+    override def leadingTrumps(cards: Set[Card]): Int = 0
 }
 
 case class ColorGame(trump: Color,
                      hand: Boolean,
                      schneider: Boolean,
-                     angesagt: Boolean,
+                     schneiderAngesagt: Boolean,
                      schwarz: Boolean,
+                     schwarzAngesagt: Boolean,
                      ouvert: Boolean) extends Game {
 
+    // enforce Skat rules
+    require( !schneiderAngesagt || hand, "Schneider can only be called if playing Hand")
+    require( !schwarzAngesagt || hand, "Schwarz can only be called if playing Hand")
+    require( !ouvert || hand, "Ouvert can only be called if playing Hand")
+
     override implicit def orderOfValues: Ordering[Value] = normalOrdering
 
-    override def isTrump: Card => Boolean = (card: Card) => card.color == trump || card.value == Unter
+    override def isTrump(card: Card): Boolean = card.color == trump || card.value == Unter
 
-    override def totalPoints: Set[Card] => Int = ???
+    override def totalGamePoints(cardsSinglePlayer: Set[Card]): Int =
+        (leadingTrumps(cardsSinglePlayer) + 1 +
+            modifications(hand, schneider, schneiderAngesagt, schwarz, schwarzAngesagt, ouvert)) * trump.colorValue
 
-    override def leadingTrumps: Set[Card] => Option[Int] = (cards: Set[Card]) =>
-        Some(countUnter(cards) + countColorTrumps(cards, trump))
+    override def leadingTrumps(cards: Set[Card]): Int = {
+        val (unter, mit) = countUnter(cards)
+        unter + countColorTrumps(cards, trump, mit)
+    }
 }
 
-case class Grand(hand: Boolean, schneider: Boolean, angesagt: Boolean, schwarz: Boolean, ouvert: Boolean) extends Game {
+case class Grand(hand: Boolean,
+                 schneider: Boolean,
+                 schneiderAngesagt: Boolean,
+                 schwarz: Boolean,
+                 schwarzAngesagt: Boolean,
+                 ouvert: Boolean) extends Game {
+
+    // enforce Skat rules
+    require( !schneiderAngesagt || hand, "Schneider can only be called if playing Hand")
+    require( !schwarzAngesagt || hand, "Schwarz can only be called if playing Hand")
+    require( !ouvert || (hand && schneider && schneiderAngesagt && schwarz && schwarzAngesagt),
+        "Ouvert can only be called if playing Hand")
 
     override implicit def orderOfValues: Ordering[Value] = normalOrdering
 
-    override def isTrump: Card => Boolean = (card: Card) => card.value == Unter
+    override def isTrump(card: Card): Boolean = card.value == Unter
 
-    override def totalPoints: Set[Card] => Int = ???
+    override def totalGamePoints(cardsSinglePlayer: Set[Card]): Int = {
+        val gameValue = if (ouvert) 36 else 24
 
-    override def leadingTrumps: Set[Card] => Option[Int] = (cards: Set[Card]) => Some(countUnter(cards))
+        (leadingTrumps(cardsSinglePlayer) + 1 +
+            modifications(hand, schneider, schneiderAngesagt, schwarz, schwarzAngesagt, ouvert)) * gameValue
+    }
+
+    override def leadingTrumps(cards: Set[Card]): Int = countUnter(cards)._1
 }
