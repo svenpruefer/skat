@@ -70,5 +70,7 @@ package object skat {
                       schneiderAngesagt: Boolean,
                       schwarz: Boolean,
                       schwarzAngesagt: Boolean,
-                      ouvert: Boolean): Int = ???
+                      ouvert: Boolean): Int = {
+        List(hand, schneider, schneiderAngesagt, schwarz, schwarzAngesagt, ouvert).count(identity)
+    }
 }
