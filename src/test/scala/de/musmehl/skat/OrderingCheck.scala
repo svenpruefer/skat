@@ -3,7 +3,7 @@ package de.musmehl.skat
 import org.scalacheck.Properties
 import org.scalacheck.Prop.forAll
 
-class OrderingCheck extends Properties("Ordering") {
+object OrderingCheck extends Properties("Ordering") {
 
   property("of Colors") = forAll(Generators.genPermutationOfColors) { input =>
     input.sorted(colorOrdering) == List[Color](Schell, Rot, Grün, Eichel)
