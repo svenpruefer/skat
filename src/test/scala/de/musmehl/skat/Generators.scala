@@ -15,4 +15,11 @@ object Generators {
 
   val genPermutationOfColorGrandValues: Gen[List[Value]] =
     Gen.pick(7, List[Value](Sieben, Acht, Neun, Zehn, Ober, König, Ass)).map(_.toList)
+
+  val genPlayer: Gen[Player] = for {
+    name <- Gen.alphaStr
+    points <- Gen.posNum[Int]
+  } yield Player(name, points)
+
+  val genThreePlayers: Gen[List[Player]] = Gen.listOfN(3, genPlayer)
 }

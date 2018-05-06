@@ -1,5 +1,7 @@
 package de.musmehl.skat
 
+import scala.collection.immutable.Queue
+
 trait PlayerBase {
 
   def name: String
@@ -11,16 +13,40 @@ trait PlayerBase {
   def hört(reizValue: Int): Boolean
 
   def plays(playerState: PlayerState, game: Game, onTable: Set[Card]): Card
+
+  def decidesHandGame(
+    reizResults: Map[PlayerBase, Option[Int]],
+    order: Queue[PlayerBase],
+    ownCards: Set[Card]): Boolean
+
+  def decidesForGame(
+    reizResults: Map[PlayerBase, Option[Int]],
+    order: Queue[PlayerBase],
+    ownCards: Set[Card],
+    skat: Option[Set[Card]]): (Game, Option[Stich])
+
 }
 
 case class Player(
   name: String,
   totalPoints: Int) extends PlayerBase {
+
   override def sagt(reizValue: Option[Int]): Option[Int] = ???
 
   override def hört(reizValue: Int): Boolean = ???
 
   override def plays(playerState: PlayerState, game: Game, onTable: Set[Card]): Card = ???
+
+  override def decidesForGame(
+    reizResults: Map[PlayerBase, Option[Int]],
+    order: Queue[PlayerBase],
+    ownCards: Set[Card],
+    skat: Option[Set[Card]]): (Game, Option[Stich]) = ???
+
+  override def decidesHandGame(
+    reizResults: Map[PlayerBase, Option[Int]],
+    order: Queue[PlayerBase],
+    ownCards: Set[Card]): Boolean = ???
 }
 
 case class PlayerState(cards: Set[Card], stiche: Set[Stich], weg: Boolean) {
