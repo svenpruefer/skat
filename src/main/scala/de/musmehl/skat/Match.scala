@@ -1,12 +1,13 @@
 package de.musmehl.skat
 
+import scala.annotation.tailrec
 import scala.collection.immutable.Queue
 
 trait MatchBase {
 
     def id: String
 
-    def players: List[Player]
+    def players: List[PlayerBase]
 
     def dealCards: MatchState
 
@@ -14,18 +15,18 @@ trait MatchBase {
 
     def playRound(matchState: MatchState): MatchState
 
-    def playFullGame: Map[Player, Int]
+    def playFullGame: Map[PlayerBase, Int]
 
 }
 
-case class Match(id: String, players: List[Player]) extends MatchBase {
+case class Match(id: String, players: List[PlayerBase]) extends MatchBase {
 
     require(players.length == 3, "Skat can only be played by exactly three players")
 
     override def dealCards: MatchState = {
         val shuffledCards = scala.util.Random.shuffle(Card.allCards)
 
-        val noDealtCards = Map[Player, Set[Card]](
+        val noDealtCards = Map[PlayerBase, Set[Card]](
             (players.head, Set.empty[Card]),
             (players(1), Set.empty[Card]),
             (players(2), Set.empty[Card])
@@ -44,7 +45,7 @@ case class Match(id: String, players: List[Player]) extends MatchBase {
         })
 
         MatchState(
-            Map[Player, PlayerState](
+            Map[PlayerBase, PlayerState](
                 (players.head, PlayerState(dealtCards(players.head), Set.empty[Stich], weg = false)),
                 (players(1), PlayerState(dealtCards(players(1)), Set.empty[Stich], weg = false)),
                 (players(2), PlayerState(dealtCards(players(2)), Set.empty[Stich], weg = false))
@@ -56,7 +57,52 @@ case class Match(id: String, players: List[Player]) extends MatchBase {
         )
     }
 
-    override def reizen(matchState: MatchState): MatchState = ???
+    override def reizen(matchState: MatchState): MatchState = {
+        require(matchState.game.isEmpty, "It is not possible to do a 'Reizen' step when there is already a game.")
+        require(matchState.singlePlayer.isEmpty, "It is not possible to do a 'Reizen' step when there is already a single player.")
+
+        @tailrec
+        def reizTwoPlayers(sager: PlayerBase, hörer: PlayerBase, biggerThan: Int = 0): (PlayerBase, Int) = {
+            val newReizValue = sager.sagt(biggerThan)
+            if (newReizValue.isEmpty) {
+                (hörer, biggerThan)
+            } else if (hörer.hört(newReizValue.get)) {
+                reizTwoPlayers(sager, hörer, newReizValue.get)
+            } else (sager, newReizValue.get)
+        }
+
+        val (hörer, rest) = matchState.order.dequeue
+        val (sager, weiterSager) = (rest.dequeue._1, rest.dequeue._2.front)
+
+        val (firstWinner, newValue) = reizTwoPlayers(sager, hörer)
+
+        val (actualWinner, finalValue) = reizTwoPlayers(weiterSager, firstWinner, newValue)
+
+        val reizResults = Map[PlayerBase, Option[Int]](
+            (actualWinner, Some(finalValue)),
+            (firstWinner, Some(finalValue - 1)),
+            (matchState.playerStates.keySet.find(p => p != actualWinner && p != firstWinner).head, Some(newValue - 1))
+        ) // TODO fix these values
+
+        val actualWinnerState = matchState.playerStates(actualWinner)
+        val hand = actualWinner.decidesHandGame(reizResults, matchState.order, actualWinnerState.cards)
+
+        val (game, newSkat) = if (hand) actualWinner.decidesForGame(reizResults, matchState.order, actualWinnerState.cards, None)
+        else actualWinner.decidesForGame(reizResults, matchState.order, actualWinnerState.cards, Some(matchState.skat))
+
+        val newSinglePlayerState = actualWinnerState.copy(
+            cards  = actualWinnerState.cards.union(matchState.skat) -- newSkat.get.cards,
+            stiche = Set(newSkat.get)
+        )
+
+        MatchState(
+            matchState.playerStates.updated(actualWinner, newSinglePlayerState),
+            matchState.order,
+            Set.empty[Card],
+            Some(game),
+            Some(actualWinner)
+        )
+    }
 
     override def playRound(matchState: MatchState): MatchState = {
         require(matchState.game.isDefined, "A round can only be played if there is a game chosen")
@@ -85,7 +131,7 @@ case class Match(id: String, players: List[Player]) extends MatchBase {
         val newOrder = secondPart.enqueue(firstPart)
 
         MatchState(
-            Map[Player, PlayerState](
+            Map[PlayerBase, PlayerState](
                 (players.head, matchState.playerStates(players.head).playCard(totalStich(players.head))),
                 (players(1), matchState.playerStates(players(1)).playCard(totalStich(players(1)))),
                 (players(2), matchState.playerStates(players(2)).playCard(totalStich(players(2))))
@@ -97,13 +143,13 @@ case class Match(id: String, players: List[Player]) extends MatchBase {
         )
     }
 
-    override def playFullGame: Map[Player, Int] = ???
+    override def playFullGame: Map[PlayerBase, Int] = ???
 }
 
 case class MatchState(
-    playerStates: Map[Player, PlayerState],
-    order:        Queue[Player],
+    playerStates: Map[PlayerBase, PlayerState],
+    order:        Queue[PlayerBase],
     skat:         Set[Card],
     game:         Option[Game],
-    singlePlayer: Option[Player]
+    singlePlayer: Option[PlayerBase]
 )

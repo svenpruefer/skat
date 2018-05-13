@@ -51,6 +51,16 @@ sealed trait Game {
         }
     }
 
+    def moveIsValid(cardsInHand: Set[Card], firstCard: Card): Card => Boolean = (x: Card) => {
+        if (isTrump(firstCard)) {
+            val hasTrump = cardsInHand.exists(p => isTrump(p))
+            if (hasTrump) isTrump(x) else true
+        } else {
+            val hasColor = cardsInHand.exists(p => p.color == firstCard.color && p.value != Unter)
+            if (hasColor) x.color == firstCard.color && x.value != Unter else true
+        }
+    }
+
 }
 
 /**
@@ -88,6 +98,10 @@ case class Null(hand: Boolean, ouvert: Boolean) extends Game {
             }
             // TODO check rules if loosing a Null Hand does not double the minus points
         }
+    }
+
+    override def moveIsValid(cardsInHand: Set[Card], firstCard: Card): Card => Boolean = (x: Card) => {
+        firstCard.color == x.color || !cardsInHand.exists(p => p.color == firstCard.color)
     }
 }
 
